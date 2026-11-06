@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Core tests
+        working-directory: core
+        run: |
+          pip install numpy scipy scikit-learn statsmodels pandas pytest
+          python -m pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Panel type check, tests and build
+        working-directory: web
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm test
+          npm run build
+      - name: Build LibreOffice extension
+        run: libreoffice/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cellstat-oxt
+          path: libreoffice/dist/cellstat.oxt

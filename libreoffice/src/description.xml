@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<description xmlns="http://openoffice.org/extensions/description/2006"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             xmlns:d="http://openoffice.org/extensions/description/2006">
+  <identifier value="org.cellstat.calc"/>
+  <version value="0.1.0"/>
+  <display-name><name lang="en">CellStat</name></display-name>
+  <publisher><name xlink:href="https://github.com/" lang="en">CellStat contributors</name></publisher>
+  <icon><default xlink:href="web/icon-64.png"/></icon>
+  <dependencies>
+    <OpenOffice.org-minimal-version value="4.0" d:name="OpenOffice.org 4.0"/>
+  </dependencies>
+  <registration>
+    <simple-license accept-by="admin" suppress-on-update="true">
+      <license-text xlink:href="LICENSE.txt" lang="en"/>
+    </simple-license>
+  </registration>
+  <extension-description><src xlink:href="description-en.txt" lang="en"/></extension-description>
+</description>
