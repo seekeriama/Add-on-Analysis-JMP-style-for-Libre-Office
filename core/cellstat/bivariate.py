@@ -267,7 +267,7 @@ def oneway(y, x, y_name="Y", x_name="X", confidence=0.95) -> Result:
                     "style": "error-bar",
                 },
             ],
-            ref_lines=[{"axis": "y", "value": grand, "name": "Grand mean"}],
+            ref_lines=[{"axis": "y", "value": grand, "name": "Mean"}],
             extra={"x_categorical": True},
         ),
         Chart(

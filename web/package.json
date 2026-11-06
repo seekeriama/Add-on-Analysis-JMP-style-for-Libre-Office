@@ -1,0 +1,19 @@
+{
+  "name": "cellstat-web",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Shared analysis panel for the CellStat Excel add-in and LibreOffice extension",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "serve:excel": "node serve-excel.mjs",
+    "certs": "npx office-addin-dev-certs install"
+  },
+  "devDependencies": {
+    "@types/office-js": "1.0.616",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
+  }
+}
