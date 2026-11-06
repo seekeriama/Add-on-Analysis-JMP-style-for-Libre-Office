@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  CellStat task pane add-in for Excel (web, Windows, Mac).
-  Every https://localhost:3000 URL points at the local dev server (npm run serve:excel in web/).
-  To publish, host web/dist/excel over HTTPS (for example GitHub Pages) and replace
-  https://localhost:3000 with that address everywhere in this file.
+  CellStat task pane add-in for Excel (web, Windows, Mac), hosted on GitHub Pages
+  by .github/workflows/pages.yml. For local development use manifest.dev.xml,
+  which points at https://localhost:3000 (npm run serve:excel in web/).
 -->
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -16,9 +15,9 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="CellStat"/>
   <Description DefaultValue="Statistical analysis in Excel: distributions, Fit Y by X, regression, decision trees, control charts, capability, Gauge R&amp;R and designed experiments."/>
-  <IconUrl DefaultValue="https://localhost:3000/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/icon-80.png"/>
-  <SupportUrl DefaultValue="https://localhost:3000/taskpane.html"/>
+  <IconUrl DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/icon-80.png"/>
+  <SupportUrl DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/taskpane.html"/>
   <AppDomains>
     <AppDomain>https://cdn.jsdelivr.net</AppDomain>
   </AppDomains>
@@ -31,7 +30,7 @@
     </Sets>
   </Requirements>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000/taskpane.html"/>
+    <SourceLocation DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/taskpane.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
@@ -76,12 +75,12 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16" DefaultValue="https://localhost:3000/icon-16.png"/>
-        <bt:Image id="Icon.32" DefaultValue="https://localhost:3000/icon-32.png"/>
-        <bt:Image id="Icon.80" DefaultValue="https://localhost:3000/icon-80.png"/>
+        <bt:Image id="Icon.16" DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="CellStat is ready"/>

@@ -56,11 +56,8 @@ names, and choose **CellStat > Open analysis panel**.
 
 ## Excel (web, Windows, Mac)
 
-```sh
-cd web && npm install && npm run build
-npm run certs            # once: trusted HTTPS certificate for localhost
-npm run serve:excel      # serves dist/excel at https://localhost:3000
-```
+The task pane is hosted on GitHub Pages from `main` by `.github/workflows/pages.yml`
+(one-time setup: **Settings > Pages > Source: GitHub Actions**).
 
 In Excel for the web: **Home > Add-ins > More add-ins > My add-ins > Upload my add-in**, and
 choose `excel-addin/manifest.xml`. The **Analyze** button appears on the **Data** tab.
@@ -69,8 +66,13 @@ The first run downloads Pyodide with NumPy and SciPy (about 20 MB from cdn.jsdel
 the browser caches it afterwards. To self-host Pyodide, open the task pane with
 `?pyodide=<your copy>/`.
 
-To publish, host `web/dist/excel` over HTTPS (for example GitHub Pages) and replace
-`https://localhost:3000` in the manifest with that address.
+For local development, serve the pane yourself and upload `excel-addin/manifest.dev.xml`:
+
+```sh
+cd web && npm install && npm run build
+npm run certs            # once: trusted HTTPS certificate for localhost
+npm run serve:excel      # serves dist/excel at https://localhost:3000
+```
 
 ## Tests
 
@@ -78,6 +80,8 @@ To publish, host `web/dist/excel` over HTTPS (for example GitHub Pages) and repl
 cd core && python3 -m pytest          # 29 tests; reference values from NIST StRD Longley and R
 cd web && npm test                    # sheet and number formatting
 ```
+
+CI runs both on every pull request and builds `cellstat.oxt` as a downloadable artifact.
 
 End-to-end checks that drive a headless LibreOffice and a browser live in
 `libreoffice/tests/` and `web/test/excel/`.
