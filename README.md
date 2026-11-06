@@ -18,6 +18,14 @@ in each.
 | Gauge R&R | Crossed study by the ANOVA method, variance components, % study variation, % tolerance, number of distinct categories |
 | Design of experiments | Two-level full and fractional factorial designs (up to 7 factors), then effects, Pareto and half-normal plots |
 
+## Download
+
+**[seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office](https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/)**
+has both files with install steps:
+
+- [cellstat.oxt](https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/cellstat.oxt) for LibreOffice Calc
+- [manifest.xml](https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/manifest.xml) for Excel
+
 ## How it fits together
 
 ```
