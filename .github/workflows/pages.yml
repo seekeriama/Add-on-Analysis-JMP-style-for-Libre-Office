@@ -1,4 +1,5 @@
-# Hosts the Excel task pane (web/dist/excel) on GitHub Pages.
+# Hosts the Excel task pane (web/dist/excel) on GitHub Pages, plus a download page
+# with cellstat.oxt (LibreOffice) and manifest.xml (Excel).
 # One-time setup: Settings > Pages > Build and deployment > Source: GitHub Actions.
 name: Deploy Excel task pane
 
@@ -33,6 +34,11 @@ jobs:
           npm ci
           npm run build
           cp ../excel-addin/manifest.xml dist/excel/manifest.xml
+      - name: Build LibreOffice extension
+        run: |
+          libreoffice/build.sh
+          cp libreoffice/dist/cellstat.oxt web/dist/excel/cellstat.oxt
+          cp web/public/download.html web/dist/excel/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
