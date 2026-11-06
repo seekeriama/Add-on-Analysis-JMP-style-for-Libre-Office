@@ -18,7 +18,7 @@ import json
 import traceback
 from typing import Any, Callable
 
-from . import bivariate, control, distribution, regression
+from . import bivariate, capability, control, distribution, doe, msa, regression, tree
 from .result import AnalysisError, Result
 
 
@@ -86,11 +86,53 @@ def _control(req):
     raise AnalysisError(f"Unknown control chart type '{kind}'.")
 
 
+def _gauge_rr(req):
+    yn, y = _col(req, "y")
+    _, part = _col(req, "part")
+    _, op = _col(req, "operator")
+    o = req.get("options", {})
+    return msa.gauge_rr(y, part, op, yn, o.get("tolerance"), o.get("study_multiplier", 6.0), o.get("alpha_interaction", 0.25))
+
+
+def _capability(req):
+    yn, y = _col(req, "y")
+    _, sg = _col(req, "subgroup", required=False)
+    o = req.get("options", {})
+    return capability.capability(y, o.get("lsl"), o.get("usl"), o.get("target"), sg, o.get("subgroup_size"), yn, o.get("confidence", 0.95))
+
+
+def _doe_design(req):
+    o = req.get("options", {})
+    return doe.generate(o.get("factors", []), o.get("runs"), o.get("center_points", 0), o.get("replicates", 1), o.get("randomize", True), o.get("seed"))
+
+
+def _doe_analyze(req):
+    yn, y = _col(req, "y")
+    xnames = req.get("roles", {}).get("x") or []
+    return doe.analyze(y, {nm: req["columns"][nm] for nm in xnames}, yn, req.get("options", {}).get("interactions", True))
+
+
+def _tree(req):
+    yn, y = _col(req, "y")
+    xnames = req.get("roles", {}).get("x") or []
+    o = req.get("options", {})
+    t = _types(req)
+    return tree.decision_tree(
+        y, {nm: req["columns"][nm] for nm in xnames}, yn, t.get(yn), t,
+        o.get("max_depth", 3), o.get("min_leaf", 5), o.get("validation", 0.0), o.get("seed", 1),
+    )
+
+
 ANALYSES: dict[str, Callable[[dict], Any]] = {
     "distribution": _distribution,
     "fit_y_by_x": _fit_y_by_x,
     "fit_model": _fit_model,
     "control_chart": _control,
+    "capability": _capability,
+    "gauge_rr": _gauge_rr,
+    "doe_design": _doe_design,
+    "doe_analyze": _doe_analyze,
+    "decision_tree": _tree,
 }
 
 
