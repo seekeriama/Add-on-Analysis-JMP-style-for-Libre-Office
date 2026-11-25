@@ -18,7 +18,7 @@ import json
 import traceback
 from typing import Any, Callable
 
-from . import bivariate, capability, control, distribution, doe, msa, regression, tree
+from . import bivariate, capability, control, distribution, doe, msa, regression, tables, tree
 from .result import AnalysisError, Result
 
 
@@ -123,6 +123,102 @@ def _tree(req):
     )
 
 
+# ------------------------------------------------------------- table tools
+# These receive every column of the table in "columns" (and of a second table
+# in "columns_b" for two-table tools) because the output keeps all of them.
+
+
+def _names(req, role):
+    v = req.get("roles", {}).get(role) or []
+    return [v] if isinstance(v, str) else list(v)
+
+
+def _one(req, role):
+    v = _names(req, role)
+    return v[0] if v else None
+
+
+def _a(req):
+    cols = req.get("columns") or {}
+    if not cols:
+        raise AnalysisError("Choose the data table first.")
+    return cols
+
+
+def _b(req):
+    cols = req.get("columns_b") or {}
+    if not cols:
+        raise AnalysisError("Choose the second table: select it in the sheet, then press Use selection under Second table.")
+    return cols
+
+
+def _opt(req, key, default=None):
+    v = req.get("options", {}).get(key, default)
+    return default if v is None else v
+
+
+def _int_or_none(v):
+    return None if v in (None, "") else int(v)
+
+
+def _summary(req):
+    return tables.summary(_a(req), _names(req, "group"), _names(req, "y"), _opt(req, "stats", ["n", "mean", "std", "min", "max"]))
+
+
+def _subset(req):
+    return tables.subset(
+        _a(req), _names(req, "keep"), _one(req, "where"), _opt(req, "op", "eq"), _opt(req, "value"),
+        _opt(req, "sample", "all"), _int_or_none(_opt(req, "count")), _opt(req, "fraction"), _int_or_none(_opt(req, "seed")),
+    )
+
+
+def _sort(req):
+    by = [(_one(req, r), bool(_opt(req, d, False))) for r, d in (("by", "desc"), ("by2", "desc2"), ("by3", "desc3"))]
+    return tables.sort(_a(req), [(c, d) for c, d in by if c])
+
+
+def _stack(req):
+    return tables.stack(_a(req), _names(req, "stack"), _opt(req, "data_name", "Data"), _opt(req, "label_name", "Label"), bool(_opt(req, "drop_missing", False)))
+
+
+def _split(req):
+    return tables.split(_a(req), _names(req, "split"), _one(req, "by"), _names(req, "group"))
+
+
+def _transpose(req):
+    return tables.transpose(_a(req), _names(req, "columns"), _one(req, "label"))
+
+
+def _join(req):
+    return tables.join(_a(req), _b(req), _names(req, "key"), _names(req, "key_b"), _opt(req, "how", "inner"))
+
+
+def _update(req):
+    return tables.update(
+        _a(req), _b(req), _names(req, "key"), _names(req, "key_b"), _opt(req, "match", "key") == "row",
+        bool(_opt(req, "ignore_missing", True)), bool(_opt(req, "add_columns", False)),
+    )
+
+
+def _concatenate(req):
+    return tables.concatenate(_a(req), _b(req), bool(_opt(req, "source_column", False)), _opt(req, "source_a", "Table 1"), _opt(req, "source_b", "Table 2"))
+
+
+def _missing_pattern(req):
+    return tables.missing_pattern(_a(req), _names(req, "columns"))
+
+
+def _compare(req):
+    return tables.compare(_a(req), _b(req), _names(req, "key"), _names(req, "key_b"), _opt(req, "source_a", "Table 1"), _opt(req, "source_b", "Table 2"))
+
+
+def _anonymize(req):
+    return tables.anonymize(
+        _a(req), _names(req, "columns"), bool(_opt(req, "rename", True)), _opt(req, "numeric", "rescale"),
+        _int_or_none(_opt(req, "seed")), bool(_opt(req, "include_key", False)),
+    )
+
+
 ANALYSES: dict[str, Callable[[dict], Any]] = {
     "distribution": _distribution,
     "fit_y_by_x": _fit_y_by_x,
@@ -133,6 +229,18 @@ ANALYSES: dict[str, Callable[[dict], Any]] = {
     "doe_design": _doe_design,
     "doe_analyze": _doe_analyze,
     "decision_tree": _tree,
+    "summary": _summary,
+    "subset": _subset,
+    "sort": _sort,
+    "stack": _stack,
+    "split": _split,
+    "transpose": _transpose,
+    "join": _join,
+    "update": _update,
+    "concatenate": _concatenate,
+    "missing_pattern": _missing_pattern,
+    "compare": _compare,
+    "anonymize": _anonymize,
 }
 
 

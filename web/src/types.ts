@@ -38,11 +38,17 @@ export interface ResultData {
   tables: TableData[];
   charts: ChartData[];
   notes: string[];
+  /** "data": write the first table as a plain data table at A1 (table tools). */
+  layout?: "report" | "data";
+  /** Base name for the exported sheet. */
+  sheet_name?: string;
 }
 
 export interface AnalysisRequest {
   analysis: string;
   columns: Record<string, Cell[]>;
+  /** Second table, for tools that combine two tables (join, update, ...). */
+  columns_b?: Record<string, Cell[]>;
   roles: Record<string, string[]>;
   options: Record<string, unknown>;
 }

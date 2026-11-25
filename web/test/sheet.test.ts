@@ -28,3 +28,12 @@ test("display formatting", () => {
   assert.equal(fmt(null), "");
   assert.deepEqual(niceTicks(0, 10, 5), [0, 2, 4, 6, 8, 10]);
 });
+
+test("sheet names: named outputs, then numbered; reports keep CellStat N", async () => {
+  const { uniqueSheetName, dataValues } = await import("../src/sheet.ts");
+  assert.equal(uniqueSheetName("Stacked", ["Sheet1"]), "Stacked");
+  assert.equal(uniqueSheetName("Stacked", ["stacked", "Stacked 2"]), "Stacked 3");
+  assert.equal(uniqueSheetName(undefined, ["CellStat 1"]), "CellStat 2");
+  assert.equal(uniqueSheetName("a/b:c", []), "a b c");
+  assert.deepEqual(dataValues({ tables: [{ columns: ["x", "y"], rows: [[1, null]] }] }), [["x", "y"], [1, ""]]);
+});

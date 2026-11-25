@@ -9,11 +9,11 @@
            xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
            xsi:type="TaskPaneApp">
   <Id>3f0d7c52-6b1e-4f6e-9d8a-2c4b7e91a5d3</Id>
-  <Version>0.1.0.0</Version>
+  <Version>0.2.0.0</Version>
   <ProviderName>CellStat contributors</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="CellStat (dev)"/>
-  <Description DefaultValue="Statistical analysis in Excel: distributions, Fit Y by X, regression, decision trees, control charts, capability, Gauge R&amp;R and designed experiments."/>
+  <Description DefaultValue="Statistical analysis in Excel: distributions, Fit Y by X, regression, decision trees, control charts, capability, Gauge R&amp;R and designed experiments, plus table tools to stack, split, join and reshape data."/>
   <IconUrl DefaultValue="https://localhost:3000/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/icon-80.png"/>
   <SupportUrl DefaultValue="https://localhost:3000/taskpane.html"/>
@@ -66,6 +66,22 @@
                     <SourceLocation resid="Taskpane.Url"/>
                   </Action>
                 </Control>
+                <Control xsi:type="Button" id="CellStat.Tables">
+                  <Label resid="TablesButton.Label"/>
+                  <Supertip>
+                    <Title resid="TablesButton.Label"/>
+                    <Description resid="TablesButton.Tooltip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>CellStatTables</TaskpaneId>
+                    <SourceLocation resid="Tables.Url"/>
+                  </Action>
+                </Control>
               </Group>
             </OfficeTab>
           </ExtensionPoint>
@@ -80,15 +96,18 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
+        <bt:Url id="Tables.Url" DefaultValue="https://localhost:3000/taskpane.html?start=tables"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="CellStat is ready"/>
         <bt:String id="Group.Label" DefaultValue="CellStat"/>
         <bt:String id="Button.Label" DefaultValue="Analyze"/>
+        <bt:String id="TablesButton.Label" DefaultValue="Tables"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Select a table with column names in the first row, then open CellStat from the Data tab."/>
         <bt:String id="Button.Tooltip" DefaultValue="Open the CellStat analysis panel."/>
+        <bt:String id="TablesButton.Tooltip" DefaultValue="Summary, subset, sort, stack, split, transpose, join, update, concatenate, missing data pattern, compare and anonymize."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

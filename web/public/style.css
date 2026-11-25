@@ -44,3 +44,6 @@ table.out td.sig { background: var(--sig); }
 table.factors { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
 table.factors th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; }
 table.factors td { padding: 2px 4px 2px 0; }
+.tablewrap.data { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.tablewrap.data th { position: sticky; top: 0; background: var(--card); }
+.tablewrap.data td { white-space: nowrap; }

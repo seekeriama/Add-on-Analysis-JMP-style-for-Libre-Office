@@ -25,6 +25,7 @@
       getUsedRange() { return { format: { autofitColumns() {} }, load() {}, width: 400 }; },
       shapes: { addImage(b64) { log.images.push(b64.length); return { load() {}, height: 255 }; } },
       activate() { log.active = name; },
+      freezePanes: { freezeRows(n) { log.frozen = n; } },
     };
   }
   window.Office = { onReady(cb) { setTimeout(cb, 0); return Promise.resolve(); } };

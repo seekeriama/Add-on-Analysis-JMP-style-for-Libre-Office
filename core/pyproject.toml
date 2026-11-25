@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cellstat"
-version = "0.1.0.dev0"
+version = "0.2.0"
 description = "Statistical analysis engine for spreadsheet add-ins (Excel and LibreOffice Calc)"
 readme = "../README.md"
 license = { text = "MIT" }

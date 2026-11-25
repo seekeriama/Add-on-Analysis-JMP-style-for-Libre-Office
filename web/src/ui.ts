@@ -13,6 +13,7 @@ interface Factor {
 
 interface State {
   data: SheetData | null;
+  dataB: SheetData | null;
   spec: AnalysisSpec;
   roles: Record<string, string[]>;
   options: Record<string, unknown>;
@@ -24,12 +25,19 @@ interface State {
   status: string;
 }
 
+/** Rows shown per data table in the panel; export always writes all of them. */
+const PREVIEW_ROWS = 100;
+
 export function mount(host: Host, root: HTMLElement): void {
+  // ?start=tables opens on the Tables tools (the "Tables" menu entry / ribbon button).
+  const start = new URLSearchParams(globalThis.location?.search ?? "").get("start");
+  const first = (start === "tables" && ANALYSES.find((a) => a.group === "Tables")) || ANALYSES[0];
   const st: State = {
     data: null,
-    spec: ANALYSES[0],
+    dataB: null,
+    spec: first,
     roles: {},
-    options: defaults(ANALYSES[0]),
+    options: defaults(first),
     types: {},
     factors: [
       { name: "Temperature", low: "150", high: "200" },
@@ -48,6 +56,8 @@ export function mount(host: Host, root: HTMLElement): void {
   });
 
   const columnNames = () => (st.data ? Object.keys(st.data.columns) : []);
+  const columnNamesB = () => (st.dataB ? Object.keys(st.dataB.columns) : []);
+  const visibleRoles = () => st.spec.roles.filter((r) => !r.when || r.when.values.includes(String(st.options[r.when.option])));
 
   function render(): void {
     const spec = st.spec;
@@ -73,10 +83,11 @@ export function mount(host: Host, root: HTMLElement): void {
         <p class="muted small">${esc(spec.description)}</p>
       </section>
       ${needsData ? dataCard() : factorsCard()}
+      ${spec.tables === 2 ? dataCardB() : ""}
       ${needsData && st.data ? rolesCard() : ""}
       ${optionsCard()}
       <section class="actions">
-        <button id="run" class="primary" ${st.busy ? "disabled" : ""}>${st.busy ? "Running…" : spec.id === "doe_design" ? "Create design" : "Run"}</button>
+        <button id="run" class="primary" ${st.busy ? "disabled" : ""}>${st.busy ? "Running…" : spec.id === "doe_design" ? "Create design" : spec.tables ? "Make table" : "Run"}</button>
       </section>
       ${st.error ? `<div class="error" role="alert">${esc(st.error)}</div>` : ""}
       <div id="results">${st.results.map(resultHtml).join("")}</div>
@@ -90,7 +101,7 @@ export function mount(host: Host, root: HTMLElement): void {
       <section class="card">
         <div class="row">
           <div>
-            <div class="lbl">Data</div>
+            <div class="lbl">${st.spec.tables === 2 ? "First table" : "Data"}</div>
             <div class="small">${
               st.data
                 ? `${esc(st.data.source)} · ${cols.length} columns · ${st.data.columns[cols[0]]?.length ?? 0} rows`
@@ -102,16 +113,37 @@ export function mount(host: Host, root: HTMLElement): void {
       </section>`;
   }
 
+  function dataCardB(): string {
+    const cols = columnNamesB();
+    return `
+      <section class="card">
+        <div class="row">
+          <div>
+            <div class="lbl">Second table</div>
+            <div class="small">${
+              st.dataB
+                ? `${esc(st.dataB.source)} · ${cols.length} columns · ${st.dataB.columns[cols[0]]?.length ?? 0} rows`
+                : "Select the second table in the sheet (it can be on another sheet), then press Use selection."
+            }</div>
+          </div>
+          <button id="read-b">Use selection</button>
+        </div>
+      </section>`;
+  }
+
   function rolesCard(): string {
-    const cols = columnNames();
-    const roles = st.spec.roles.filter((r) => !r.when || r.when.values.includes(String(st.options[r.when.option])));
-    const chosen = new Set(Object.values(st.roles).flat());
+    const roles = visibleRoles();
+    if (!roles.length) return "";
+    const chosen = new Set(Object.entries(st.roles).filter(([k]) => !st.spec.roles.find((r) => r.key === k)?.table).flatMap(([, v]) => v));
     return `
       <section class="card">
         ${roles
           .map((r) => {
+            const cols = r.table === "b" ? columnNamesB() : columnNames();
             const sel = st.roles[r.key] ?? [];
-            const control = r.multiple
+            const control = r.table === "b" && !st.dataB
+              ? `<div class="small muted">Choose the second table first.</div>`
+              : r.multiple
               ? `<div class="checks">${cols
                   .map(
                     (c) =>
@@ -174,6 +206,14 @@ export function mount(host: Host, root: HTMLElement): void {
     const v = st.options[o.key];
     if (o.type === "checkbox")
       return `<label class="check field"><input type="checkbox" data-opt="${o.key}" ${v ? "checked" : ""}> ${esc(o.label)}</label>`;
+    if (o.type === "text")
+      return `<div class="field"><label class="lbl">${esc(o.label)}</label><input data-opt="${o.key}" value="${esc(String(v ?? ""))}"></div>`;
+    if (o.type === "multi") {
+      const on = new Set((v as string[] | null) ?? []);
+      return `<div class="field"><div class="lbl">${esc(o.label)}</div><div class="checks">${(o.choices ?? [])
+        .map((c) => `<label class="check"><input type="checkbox" data-multi="${o.key}" value="${c.value}" ${on.has(c.value) ? "checked" : ""}> ${esc(c.label)}</label>`)
+        .join("")}</div></div>`;
+    }
     if (o.type === "select") {
       const choices = st.spec.id === "doe_design" && o.key === "runs" ? runChoices(st.factors.length) : o.choices ?? [];
       return `<div class="field"><label class="lbl">${esc(o.label)}</label><select data-opt="${o.key}">${choices
@@ -184,26 +224,31 @@ export function mount(host: Host, root: HTMLElement): void {
   }
 
   function resultHtml(r: ResultData, ri: number): string {
+    const data = r.layout === "data";
+    const t0 = r.tables[0];
+    const size = data && t0 ? `<p class="small muted">${t0.rows.length} rows × ${t0.columns.length} columns${t0.rows.length > PREVIEW_ROWS ? `. Showing the first ${PREVIEW_ROWS}; export writes every row.` : ""}</p>` : "";
     return `
       <article class="result">
         <div class="row">
           <h2>${esc(r.title)}</h2>
-          <button data-export="${ri}">Export to sheet</button>
+          <button data-export="${ri}">${data ? "Export to new sheet" : "Export to sheet"}</button>
         </div>
+        ${size}
         ${r.notes.map((n) => `<p class="note">${esc(n)}</p>`).join("")}
         <div class="charts">${r.charts.map((c) => `<figure class="chart${c.kind === "tree" ? " wide" : ""}">${renderChart(c)}</figure>`).join("")}</div>
         ${r.tables
           .map(
-            (t) => `<div class="tablewrap"><table class="out">
-              <caption>${esc(t.title)}</caption>
+            (t) => `<div class="tablewrap${data ? " data" : ""}"><table class="out">
+              ${data ? "" : `<caption>${esc(t.title)}</caption>`}
               <thead><tr>${t.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>
-              <tbody>${t.rows.length ? "" : `<tr><td colspan="${t.columns.length}" class="muted">None</td></tr>`}${t.rows
+              <tbody>${t.rows.length ? "" : `<tr><td colspan="${t.columns.length}" class="muted">None</td></tr>`}${(data ? t.rows.slice(0, PREVIEW_ROWS) : t.rows)
                 .map(
                   (row) =>
                     `<tr>${row
                       .map((v, i) => {
                         const alert = /p-value/i.test(t.columns[i] ?? "") && typeof v === "number" && v < 0.05;
-                        return `<td class="${typeof v === "number" ? "num" : ""}${alert ? " sig" : ""}">${esc(fmt(v, t.columns[i]))}</td>`;
+                        const shown = data && typeof v !== "number" ? (v === null ? "" : String(v)) : fmt(v, data ? undefined : t.columns[i]);
+                        return `<td class="${typeof v === "number" ? "num" : ""}${alert && !data ? " sig" : ""}">${esc(shown)}</td>`;
                       })
                       .join("")}</tr>`,
                 )
@@ -224,7 +269,8 @@ export function mount(host: Host, root: HTMLElement): void {
       st.error = "";
       render();
     });
-    q("#read")?.addEventListener("click", readSelection);
+    q("#read")?.addEventListener("click", () => readSelection("a"));
+    q("#read-b")?.addEventListener("click", () => readSelection("b"));
     root.querySelectorAll<HTMLSelectElement>("select[data-role]").forEach((el) =>
       el.addEventListener("change", () => {
         st.roles[el.dataset.role!] = el.value ? [el.value] : [];
@@ -237,7 +283,8 @@ export function mount(host: Host, root: HTMLElement): void {
         const cur = new Set(st.roles[k] ?? []);
         if (el.checked) cur.add(el.value);
         else cur.delete(el.value);
-        st.roles[k] = columnNames().filter((c) => cur.has(c));
+        const fromB = st.spec.roles.find((r) => r.key === k)?.table === "b";
+        st.roles[k] = (fromB ? columnNamesB() : columnNames()).filter((c) => cur.has(c));
         render();
       }),
     );
@@ -252,7 +299,18 @@ export function mount(host: Host, root: HTMLElement): void {
         if (el instanceof HTMLInputElement && el.type === "checkbox") st.options[k] = el.checked;
         else if (el instanceof HTMLInputElement && el.type === "number") st.options[k] = el.value === "" ? null : Number(el.value);
         else st.options[k] = el.value;
-        if (k === "chart") render();
+        const shapesForm = [...st.spec.roles, ...st.spec.options].some((x) => x.when?.option === k);
+        if (shapesForm) render();
+      }),
+    );
+    root.querySelectorAll<HTMLInputElement>("input[data-multi]").forEach((el) =>
+      el.addEventListener("change", () => {
+        const k = el.dataset.multi!;
+        const spec = st.spec.options.find((o) => o.key === k);
+        const cur = new Set((st.options[k] as string[] | null) ?? []);
+        if (el.checked) cur.add(el.value);
+        else cur.delete(el.value);
+        st.options[k] = (spec?.choices ?? []).map((c) => c.value).filter((c) => cur.has(c));
       }),
     );
     root.querySelectorAll<HTMLInputElement>("input[data-factor]").forEach((el) =>
@@ -291,13 +349,19 @@ export function mount(host: Host, root: HTMLElement): void {
     );
   }
 
-  async function readSelection(): Promise<void> {
+  async function readSelection(which: "a" | "b"): Promise<void> {
     st.error = "";
     try {
-      st.data = await host.readSelection();
-      const cols = new Set(columnNames());
-      for (const k of Object.keys(st.roles)) st.roles[k] = st.roles[k].filter((c) => cols.has(c));
-      if (!columnNames().length) st.error = "The selection is empty.";
+      const d = await host.readSelection();
+      if (which === "a") st.data = d;
+      else st.dataB = d;
+      const colsA = new Set(columnNames());
+      const colsB = new Set(columnNamesB());
+      for (const k of Object.keys(st.roles)) {
+        const fromB = st.spec.roles.find((r) => r.key === k)?.table === "b";
+        st.roles[k] = st.roles[k].filter((c) => (fromB ? colsB : colsA).has(c));
+      }
+      if (!Object.keys(d.columns).length) st.error = "The selection is empty.";
     } catch (e) {
       st.error = (e as Error).message;
     }
@@ -320,15 +384,27 @@ export function mount(host: Host, root: HTMLElement): void {
         st.error = "Choose data first: select a range and press Use selection.";
         return render();
       }
-      const active = spec.roles.filter((r) => !r.when || r.when.values.includes(String(st.options[r.when.option])));
-      for (const r of active) {
+      if (spec.tables === 2 && !st.dataB) {
+        st.error = "Choose the second table: select it in the sheet and press Use selection under Second table.";
+        return render();
+      }
+      for (const r of visibleRoles()) {
         const cols = st.roles[r.key] ?? [];
         if (!cols.length && !r.optional) {
-          st.error = `Choose a column for "${r.label}".`;
+          st.error = `Choose ${r.multiple ? "at least one column" : "a column"} for "${r.label}".`;
           return render();
         }
         if (cols.length) req.roles[r.key] = cols;
-        for (const c of cols) req.columns[c] = st.data.columns[c];
+        if (!r.table) for (const c of cols) req.columns[c] = st.data.columns[c];
+      }
+      if (spec.tables) {
+        // Table tools keep every column, so send the whole table(s).
+        req.columns = { ...st.data.columns };
+        req.options.source_a = st.data.source;
+        if (spec.tables === 2 && st.dataB) {
+          req.columns_b = { ...st.dataB.columns };
+          req.options.source_b = st.dataB.source;
+        }
       }
       const types: Record<string, string> = {};
       for (const [c, t] of Object.entries(st.types)) if (t !== "auto" && c in req.columns) types[c] = t;
@@ -357,5 +433,6 @@ function defaults(spec: AnalysisSpec): Record<string, unknown> {
   const o: Record<string, unknown> = {};
   for (const opt of spec.options) o[opt.key] = opt.default ?? null;
   if (spec.id === "doe_design") o.runs = "8";
+  for (const opt of spec.options) if (Array.isArray(opt.default)) o[opt.key] = [...opt.default];
   return o;
 }
