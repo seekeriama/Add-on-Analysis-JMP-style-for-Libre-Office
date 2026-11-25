@@ -3,7 +3,7 @@
              xmlns:xlink="http://www.w3.org/1999/xlink"
              xmlns:d="http://openoffice.org/extensions/description/2006">
   <identifier value="org.cellstat.calc"/>
-  <version value="0.1.0"/>
+  <version value="0.2.0"/>
   <display-name><name lang="en">CellStat</name></display-name>
   <publisher><name xlink:href="https://github.com/" lang="en">CellStat contributors</name></publisher>
   <icon><default xlink:href="web/icon-64.png"/></icon>

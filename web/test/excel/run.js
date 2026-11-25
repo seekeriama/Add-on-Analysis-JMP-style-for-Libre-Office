@@ -47,6 +47,19 @@ const server = http.createServer((req, res) => {
     await page.waitForFunction(() => document.querySelector(".result") || document.querySelector(".error"), null, { timeout: 120000 });
     if (await page.locator(".error").count()) throw new Error(await page.locator(".error").innerText());
     console.log("tree:", await page.locator(".result h2").innerText());
+    // Table tools: Split writes a plain data table at A1 of a sheet named "Split".
+    await page.selectOption("#analysis", "split");
+    await page.check("input[data-role=split][value=weight]");
+    await page.selectOption("select[data-role=by]", "group");
+    await page.click("#run");
+    await page.waitForFunction(() => document.querySelector(".result") || document.querySelector(".error"), null, { timeout: 60000 });
+    if (await page.locator(".error").count()) throw new Error(await page.locator(".error").innerText());
+    await page.click("[data-export='0']");
+    await page.waitForFunction(() => document.querySelector("[data-export='0']")?.textContent?.startsWith("Exported"), null, { timeout: 30000 });
+    const log2 = await page.evaluate(() => window.__excel);
+    const w = log2.writes.filter((x) => x.sheet === "Split");
+    console.log("split export:", log2.active, "rows", w[0].values.length, "header", w[0].values[0].join(","), "frozen", log2.frozen);
+    if (w[0].values[0].join(",") !== "ctrl,trt1,trt2" || w[0].values.length !== 11) throw new Error("unexpected split output");
   } catch (e) {
     console.log("FAIL", e.message);
     process.exitCode = 1;

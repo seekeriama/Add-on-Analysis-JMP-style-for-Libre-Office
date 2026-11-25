@@ -18,6 +18,31 @@ in each.
 | Gauge R&R | Crossed study by the ANOVA method, variance components, % study variation, % tolerance, number of distinct categories |
 | Design of experiments | Two-level full and fractional factorial designs (up to 7 factors), then effects, Pareto and half-normal plots |
 
+### Table tools
+
+Reshape, combine and clean data. Each tool writes its output as a plain table (column
+names in row 1) on a new sheet, ready to analyse again. Open them from **CellStat > Tables**
+in LibreOffice or the **Tables** button on Excel's Data tab, or pick them under *Tables* in the
+panel.
+
+| Tool | What it does |
+| --- | --- |
+| Summary | One row per group with N, mean, std dev, min, max, sum, median or N missing |
+| Subset | Rows that meet a condition (equals, less than, contains, is missing, ...), the first N rows or a random sample, and chosen columns |
+| Sort | Rows ordered by up to three columns, ascending or descending, empty cells last |
+| Stack | Wide to long: several columns into one data column plus a label column |
+| Split | Long to wide: the values of one column become new columns |
+| Transpose | Rows become columns |
+| Join | Columns of two tables side by side, matched on key columns (inner, left, right or full) or by row number |
+| Update | Values in the first table replaced from matching rows of the second |
+| Concatenate | Rows of the second table appended below the first, columns matched by name |
+| Missing data pattern | Which combinations of columns are empty, and how often |
+| Compare tables | Columns, rows and cells that differ between two tables |
+| Anonymize | Text replaced with coded labels, numbers rescaled, columns renamed |
+
+Tools that combine two tables have a second **Use selection** button: select the first table
+and press the first button, then select the second table (on any sheet) and press the second.
+
 ## Download
 
 **[seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office](https://seekeriama.github.io/Add-on-Analysis-JMP-style-for-Libre-Office/)**
@@ -60,7 +85,7 @@ unopkg add libreoffice/dist/cellstat.oxt   # or Tools > Extension Manager > Add
 ```
 
 Restart LibreOffice, open a spreadsheet, select a table whose first row holds column
-names, and choose **CellStat > Open analysis panel**.
+names, and choose **CellStat > Open analysis panel** (or **CellStat > Tables** for the table tools).
 
 ## Excel (web, Windows, Mac)
 
@@ -68,7 +93,7 @@ The task pane is hosted on GitHub Pages from `main` by `.github/workflows/pages.
 (one-time setup: **Settings > Pages > Source: GitHub Actions**).
 
 In Excel for the web: **Home > Add-ins > More add-ins > My add-ins > Upload my add-in**, and
-choose `excel-addin/manifest.xml`. The **Analyze** button appears on the **Data** tab.
+choose `excel-addin/manifest.xml`. The **Analyze** and **Tables** buttons appear on the **Data** tab.
 
 The first run downloads Pyodide with NumPy and SciPy (about 20 MB from cdn.jsdelivr.net);
 the browser caches it afterwards. To self-host Pyodide, open the task pane with
@@ -85,7 +110,7 @@ npm run serve:excel      # serves dist/excel at https://localhost:3000
 ## Tests
 
 ```sh
-cd core && python3 -m pytest          # 29 tests; reference values from NIST StRD Longley and R
+cd core && python3 -m pytest          # 44 tests; reference values from NIST StRD Longley and R
 cd web && npm test                    # sheet and number formatting
 ```
 

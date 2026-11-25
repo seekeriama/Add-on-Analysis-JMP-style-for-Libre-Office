@@ -2,6 +2,7 @@
 
     soffice --headless --accept="socket,host=127.0.0.1,port=2002;urp;" &
     python3 lo_session.py setup        # new sheet with sample data, opens the panel
+    python3 lo_session.py select N     # select A1 of sheet N (0-based), e.g. a second table
     python3 lo_session.py check        # lists sheets, cell text and pictures on the last sheet
 """
 
@@ -48,10 +49,24 @@ def setup(ctx):
             rows.append((v, g, float(i % 5 + 1)))
             i += 1
     sheet.getCellRangeByPosition(0, 0, 2, len(rows) - 1).setDataArray(tuple(rows))
+    # A small lookup table on a second sheet, for join, update and compare.
+    doc.Sheets.insertNewByName("Groups", 1)
+    look = (("group", "label"), ("ctrl", "Control"), ("trt1", "Treatment 1"), ("trt2", "Treatment 2"))
+    doc.Sheets.getByIndex(1).getCellRangeByPosition(0, 0, 1, len(look) - 1).setDataArray(look)
     doc.getCurrentController().select(sheet.getCellByPosition(0, 0))
     disp = smgr.createInstanceWithContext("com.sun.star.frame.DispatchHelper", ctx)
     disp.executeDispatch(doc.getCurrentController().getFrame(), "service:org.cellstat.calc.Panel?open", "", 0, ())
     print("setup done")
+
+
+def select(ctx):
+    desktop = ctx.ServiceManager.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
+    doc = desktop.getCurrentComponent()
+    sheet = doc.Sheets.getByIndex(int(sys.argv[2]))
+    ctrl = doc.getCurrentController()
+    ctrl.setActiveSheet(sheet)
+    ctrl.select(sheet.getCellByPosition(0, 0))
+    print("selected", sheet.Name)
 
 
 def check(ctx):
@@ -72,4 +87,4 @@ def check(ctx):
 
 if __name__ == "__main__":
     ctx = connect()
-    {"setup": setup, "check": check}[sys.argv[1]](ctx)
+    {"setup": setup, "select": select, "check": check}[sys.argv[1]](ctx)

@@ -12,6 +12,11 @@
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Open analysis panel</value></prop>
             <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           </node>
+          <node oor:name="m1b" oor:op="replace">
+            <prop oor:name="URL" oor:type="xs:string"><value>service:org.cellstat.calc.Panel?tables</value></prop>
+            <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Tables (stack, split, join, ...)</value></prop>
+            <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          </node>
           <node oor:name="m2" oor:op="replace">
             <prop oor:name="URL" oor:type="xs:string"><value>service:org.cellstat.calc.Panel?about</value></prop>
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">About CellStat</value></prop>

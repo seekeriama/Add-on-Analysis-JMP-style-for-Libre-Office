@@ -143,17 +143,18 @@ class PanelJob(unohelper.Base, XJobExecutor):
 
     def trigger(self, arg):
         if arg == "about":
-            self._message("CellStat 0.1", "Statistical analysis for LibreOffice Calc and Excel.\nMIT License.")
+            self._message("CellStat 0.2", "Statistical analysis and data table tools for LibreOffice Calc and Excel.\nMIT License.")
             return
         server = get_server(self.ctx)
+        url = server.url + ("&start=tables" if arg == "tables" else "")
         if os.environ.get("CELLSTAT_NO_BROWSER"):
-            print(server.url, flush=True)
+            print(url, flush=True)
             return
         shell = self.ctx.ServiceManager.createInstanceWithContext("com.sun.star.system.SystemShellExecute", self.ctx)
         try:
-            shell.execute(server.url, "", 1)  # URIS_ONLY
+            shell.execute(url, "", 1)  # URIS_ONLY
         except Exception:
-            self._message("CellStat", f"Open this address in your browser:\n{server.url}")
+            self._message("CellStat", f"Open this address in your browser:\n{url}")
 
     def _message(self, title, text):
         try:

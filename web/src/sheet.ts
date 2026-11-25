@@ -51,3 +51,21 @@ export function numberFormat(v: unknown): string {
   if (a !== 0 && (a < 1e-4 || a >= 1e9)) return "0.000E+00";
   return "0.0####";
 }
+
+/** A free sheet name: "Stacked", "Stacked 2", ... (reports keep "CellStat 1", "CellStat 2", ...). */
+export function uniqueSheetName(base: string | undefined, existing: Iterable<string>): string {
+  const taken = new Set([...existing].map((n) => n.toLowerCase()));
+  const clean = (base ?? "").replace(/[\[\]:*?/\\']/g, " ").replace(/\s+/g, " ").trim().slice(0, 26) || "CellStat";
+  if (clean !== "CellStat" && !taken.has(clean.toLowerCase())) return clean;
+  for (let i = clean === "CellStat" ? 1 : 2; ; i++) {
+    const name = `${clean} ${i}`;
+    if (!taken.has(name.toLowerCase())) return name;
+  }
+}
+
+/** Header row plus body of a data-layout result, with missing cells as "". */
+export function dataValues(result: { tables: { columns: string[]; rows: Cell[][] }[] }): (string | number | boolean)[][] {
+  const t = result.tables[0];
+  if (!t) return [];
+  return [t.columns, ...t.rows.map((r) => t.columns.map((_, j) => (r[j] === null || r[j] === undefined ? "" : r[j]) as string | number | boolean))];
+}

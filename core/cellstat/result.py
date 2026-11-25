@@ -89,6 +89,11 @@ class Result:
     tables: list[Table] = field(default_factory=list)
     charts: list[Chart] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    #: "report" (title, notes, captioned tables, charts) or "data" (first table
+    #: written as a plain data table at A1, ready for further analysis).
+    layout: str = "report"
+    #: Base name for the exported sheet; hosts add a number if it is taken.
+    sheet_name: str = ""
 
     def table(self, title: str) -> Table:
         for t in self.tables:
@@ -112,6 +117,8 @@ class Result:
             "tables": [t.to_dict() for t in self.tables],
             "charts": [c.to_dict() for c in self.charts],
             "notes": list(self.notes),
+            "layout": self.layout,
+            "sheet_name": self.sheet_name,
         }
 
 

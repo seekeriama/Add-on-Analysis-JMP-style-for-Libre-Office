@@ -81,12 +81,44 @@ def read_selection(doc):
     return to_columns(data, name.replace("$", ""))
 
 
-def _unique_sheet_name(doc, base="CellStat"):
-    names = set(doc.Sheets.ElementNames)
-    i = 1
-    while f"{base} {i}" in names:
+def unique_sheet_name(base, existing):
+    """Mirrors uniqueSheetName in web/src/sheet.ts."""
+    import re
+
+    taken = {n.lower() for n in existing}
+    clean = re.sub(r"\s+", " ", re.sub(r"[\[\]:*?/\\']", " ", base or "")).strip()[:26] or "CellStat"
+    if clean != "CellStat" and clean.lower() not in taken:
+        return clean
+    i = 1 if clean == "CellStat" else 2
+    while f"{clean} {i}".lower() in taken:
         i += 1
-    return f"{base} {i}"
+    return f"{clean} {i}"
+
+
+def _data_cell(v):
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return 1.0 if v else 0.0
+    if isinstance(v, (int, float)):
+        return float(v) if math.isfinite(v) else ""
+    return str(v)
+
+
+def export_data(doc, sheet, table):
+    """A plain table at A1: header row, then every row, written in one call per block."""
+    cols = table["columns"]
+    if not cols:
+        return
+    values = [tuple(str(c) for c in cols)] + [tuple(_data_cell(r[j] if j < len(r) else None) for j in range(len(cols))) for r in table["rows"]]
+    block = 20000
+    for start in range(0, len(values), block):
+        part = values[start:start + block]
+        sheet.getCellRangeByPosition(0, start, len(cols) - 1, start + len(part) - 1).setDataArray(tuple(part))
+    header = sheet.getCellRangeByPosition(0, 0, len(cols) - 1, 0)
+    header.CharWeight, header.CellBackColor = BOLD, HEADER_FILL
+    for j in range(len(cols)):
+        sheet.Columns.getByIndex(j).OptimalWidth = True
 
 
 def _cell_value(v):
@@ -124,9 +156,19 @@ def _format_key(doc, code, cache):
 
 def export_result(ctx, doc, result, chart_svgs):
     """New sheet with the result's tables, then its charts as pictures to the right."""
-    name = _unique_sheet_name(doc)
+    name = unique_sheet_name(result.get("sheet_name"), doc.Sheets.ElementNames)
     doc.Sheets.insertNewByName(name, doc.Sheets.Count)
     sheet = doc.Sheets.getByName(name)
+
+    if result.get("layout") == "data":
+        export_data(doc, sheet, result["tables"][0] if result.get("tables") else {"columns": [], "rows": []})
+        try:
+            ctrl = doc.getCurrentController()
+            ctrl.setActiveSheet(sheet)
+            ctrl.freezeAtPosition(0, 1)
+        except Exception:
+            pass
+        return name
 
     blocks = [("title", [[result["title"]]])]
     blocks += [("note", [[n]]) for n in result.get("notes", [])]

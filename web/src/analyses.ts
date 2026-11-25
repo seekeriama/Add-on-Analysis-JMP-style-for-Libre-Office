@@ -8,13 +8,15 @@ export interface RoleSpec {
   hint?: string;
   /** Only show this role when an option has a given value. */
   when?: { option: string; values: string[] };
+  /** Pick from the second table's columns instead of the first's. */
+  table?: "b";
 }
 
 export interface OptionSpec {
   key: string;
   label: string;
-  type: "number" | "select" | "checkbox";
-  default?: number | string | boolean | null;
+  type: "number" | "select" | "checkbox" | "text" | "multi";
+  default?: number | string | boolean | string[] | null;
   choices?: { value: string; label: string }[];
   step?: number;
   min?: number;
@@ -30,6 +32,8 @@ export interface AnalysisSpec {
   roles: RoleSpec[];
   options: OptionSpec[];
   needsData?: boolean;
+  /** Table tools: send every column, and write the output as a new data table. 2 = needs a second table. */
+  tables?: 1 | 2;
 }
 
 const confidence: OptionSpec = { key: "confidence", label: "Confidence level", type: "number", default: 0.95, step: 0.01, min: 0.5, max: 0.999 };
@@ -165,7 +169,248 @@ export const ANALYSES: AnalysisSpec[] = [
     ],
     options: [{ key: "interactions", label: "Include two-factor interactions", type: "checkbox", default: true }],
   },
+  ...tableTools(),
 ];
+
+function tableTools(): AnalysisSpec[] {
+  const G = "Tables";
+  const keyed = (opt: string, values: string[]): RoleSpec[] => [
+    { key: "key", label: "Match rows on, first table", multiple: true, when: { option: opt, values } },
+    { key: "key_b", label: "Matching columns, second table", multiple: true, optional: true, table: "b", when: { option: opt, values }, hint: "only if the names differ; paired in column order" },
+  ];
+  return [
+    {
+      id: "summary",
+      label: "Summary",
+      group: G,
+      tables: 1,
+      description: "One row per group with counts and statistics of the columns you choose.",
+      roles: [
+        { key: "group", label: "Group by", multiple: true, optional: true },
+        { key: "y", label: "Statistics for", multiple: true, optional: true },
+      ],
+      options: [
+        {
+          key: "stats",
+          label: "Statistics",
+          type: "multi",
+          default: ["n", "mean", "std", "min", "max"],
+          choices: [
+            { value: "n", label: "N" },
+            { value: "n_missing", label: "N missing" },
+            { value: "mean", label: "Mean" },
+            { value: "std", label: "Std dev" },
+            { value: "min", label: "Min" },
+            { value: "max", label: "Max" },
+            { value: "sum", label: "Sum" },
+            { value: "median", label: "Median" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "subset",
+      label: "Subset",
+      group: G,
+      tables: 1,
+      description: "Keep the rows that meet a condition, a random sample of rows, and the columns you choose.",
+      roles: [
+        { key: "keep", label: "Columns to keep", multiple: true, optional: true, hint: "none = all" },
+        { key: "where", label: "Row condition on", optional: true },
+      ],
+      options: [
+        {
+          key: "op",
+          label: "Condition",
+          type: "select",
+          default: "eq",
+          choices: [
+            { value: "eq", label: "equals" },
+            { value: "ne", label: "does not equal" },
+            { value: "lt", label: "is less than" },
+            { value: "le", label: "is at most" },
+            { value: "gt", label: "is greater than" },
+            { value: "ge", label: "is at least" },
+            { value: "contains", label: "contains" },
+            { value: "not_contains", label: "does not contain" },
+            { value: "missing", label: "is missing" },
+            { value: "not_missing", label: "is not missing" },
+          ],
+        },
+        { key: "value", label: "Value", type: "text", default: "", when: { option: "op", values: ["eq", "ne", "lt", "le", "gt", "ge", "contains", "not_contains"] } },
+        {
+          key: "sample",
+          label: "Rows",
+          type: "select",
+          default: "all",
+          choices: [
+            { value: "all", label: "All matching rows" },
+            { value: "first_n", label: "First N rows" },
+            { value: "random_n", label: "Random sample of N rows" },
+            { value: "random_fraction", label: "Random fraction of rows" },
+          ],
+        },
+        { key: "count", label: "N", type: "number", default: 10, min: 1, step: 1, when: { option: "sample", values: ["first_n", "random_n"] } },
+        { key: "fraction", label: "Fraction (0 to 1)", type: "number", default: 0.5, min: 0, max: 1, step: 0.05, when: { option: "sample", values: ["random_fraction"] } },
+        { key: "seed", label: "Random seed (optional, repeats the sample)", type: "number", default: null, step: 1, when: { option: "sample", values: ["random_n", "random_fraction"] } },
+      ],
+    },
+    {
+      id: "sort",
+      label: "Sort",
+      group: G,
+      tables: 1,
+      description: "Order the rows by up to three columns. Empty cells go last.",
+      roles: [
+        { key: "by", label: "Sort by" },
+        { key: "by2", label: "Then by", optional: true },
+        { key: "by3", label: "Then by", optional: true },
+      ],
+      options: [
+        { key: "desc", label: "First column descending", type: "checkbox", default: false },
+        { key: "desc2", label: "Second column descending", type: "checkbox", default: false },
+        { key: "desc3", label: "Third column descending", type: "checkbox", default: false },
+      ],
+    },
+    {
+      id: "stack",
+      label: "Stack",
+      group: G,
+      tables: 1,
+      description: "Wide to long: several columns become one data column plus a label column naming where each value came from.",
+      roles: [{ key: "stack", label: "Columns to stack", multiple: true }],
+      options: [
+        { key: "data_name", label: "Name of the new data column", type: "text", default: "Data" },
+        { key: "label_name", label: "Name of the new label column", type: "text", default: "Label" },
+        { key: "drop_missing", label: "Leave out empty values", type: "checkbox", default: false },
+      ],
+    },
+    {
+      id: "split",
+      label: "Split",
+      group: G,
+      tables: 1,
+      description: "Long to wide: each value of the split-by column becomes a new column holding the split values.",
+      roles: [
+        { key: "split", label: "Values to split", multiple: true },
+        { key: "by", label: "Split by (its values name the new columns)" },
+        { key: "group", label: "Group rows by", multiple: true, optional: true, hint: "one output row per group" },
+      ],
+      options: [],
+    },
+    {
+      id: "transpose",
+      label: "Transpose",
+      group: G,
+      tables: 1,
+      description: "Rows become columns and columns become rows.",
+      roles: [
+        { key: "columns", label: "Columns to transpose", multiple: true, optional: true, hint: "none = all" },
+        { key: "label", label: "Names for the new columns from", optional: true },
+      ],
+      options: [],
+    },
+    {
+      id: "join",
+      label: "Join",
+      group: G,
+      tables: 2,
+      description: "Put the columns of two tables side by side, matching rows on key columns or by row number.",
+      roles: keyed("how", ["inner", "left", "right", "outer"]),
+      options: [
+        {
+          key: "how",
+          label: "Rows to keep",
+          type: "select",
+          default: "inner",
+          choices: [
+            { value: "inner", label: "Only rows that match" },
+            { value: "left", label: "All rows of the first table" },
+            { value: "right", label: "All rows of the second table" },
+            { value: "outer", label: "All rows of both tables" },
+            { value: "row", label: "Match by row number" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "update",
+      label: "Update",
+      group: G,
+      tables: 2,
+      description: "Replace values in the first table with values from matching rows of the second. Columns are matched by name.",
+      roles: keyed("match", ["key"]),
+      options: [
+        {
+          key: "match",
+          label: "Match rows",
+          type: "select",
+          default: "key",
+          choices: [
+            { value: "key", label: "On key columns" },
+            { value: "row", label: "By row number" },
+          ],
+        },
+        { key: "ignore_missing", label: "Keep the old value where the second table is empty", type: "checkbox", default: true },
+        { key: "add_columns", label: "Add new columns from the second table", type: "checkbox", default: false },
+      ],
+    },
+    {
+      id: "concatenate",
+      label: "Concatenate",
+      group: G,
+      tables: 2,
+      description: "Append the rows of the second table below the first. Columns are matched by name; new ones are added.",
+      roles: [],
+      options: [{ key: "source_column", label: "Add a column naming the source table", type: "checkbox", default: true }],
+    },
+    {
+      id: "missing_pattern",
+      label: "Missing data pattern",
+      group: G,
+      tables: 1,
+      description: "Which combinations of columns are empty, and how often.",
+      roles: [{ key: "columns", label: "Columns", multiple: true, optional: true, hint: "none = all" }],
+      options: [],
+    },
+    {
+      id: "compare",
+      label: "Compare tables",
+      group: G,
+      tables: 2,
+      description: "Columns, rows and cell values that differ between two tables.",
+      roles: [
+        { key: "key", label: "Match rows on, first table", multiple: true, optional: true, hint: "none = by row number" },
+        { key: "key_b", label: "Matching columns, second table", multiple: true, optional: true, table: "b", hint: "only if the names differ" },
+      ],
+      options: [],
+    },
+    {
+      id: "anonymize",
+      label: "Anonymize",
+      group: G,
+      tables: 1,
+      description: "Replace text with coded labels, rescale numbers and rename columns, so data can be shared.",
+      roles: [{ key: "columns", label: "Columns to anonymize", multiple: true, optional: true, hint: "none = all" }],
+      options: [
+        { key: "rename", label: "Rename columns (C1, C2, ...)", type: "checkbox", default: true },
+        {
+          key: "numeric",
+          label: "Numeric columns",
+          type: "select",
+          default: "rescale",
+          choices: [
+            { value: "rescale", label: "Rescale (keeps relationships)" },
+            { value: "keep", label: "Keep values" },
+            { value: "text", label: "Replace with coded labels" },
+          ],
+        },
+        { key: "seed", label: "Random seed (optional)", type: "number", default: null, step: 1 },
+        { key: "include_key", label: "Also produce the key to reverse it", type: "checkbox", default: false },
+      ],
+    },
+  ];
+}
 
 /** Run counts for a two-level design with k factors (mirrors core/cellstat/doe.py). */
 export function runChoices(k: number): { value: string; label: string }[] {

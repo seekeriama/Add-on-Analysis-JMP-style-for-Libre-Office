@@ -2,7 +2,7 @@
 // Web Worker for the Python core.
 
 /// <reference types="office-js" />
-import { numberFormat, resultBlocks, toColumns } from "../sheet";
+import { dataValues, numberFormat, resultBlocks, toColumns, uniqueSheetName } from "../sheet";
 import type { AnalysisRequest, AnalysisResponse, Host, ResultData, SheetData } from "../types";
 
 export class ExcelHost implements Host {
@@ -58,10 +58,31 @@ export class ExcelHost implements Host {
       const sheets = ctx.workbook.worksheets;
       sheets.load("items/name");
       await ctx.sync();
-      const names = new Set(sheets.items.map((s) => s.name));
-      let name = "CellStat 1";
-      for (let i = 2; names.has(name); i++) name = `CellStat ${i}`;
+      const name = uniqueSheetName(result.sheet_name, sheets.items.map((s) => s.name));
       const ws = sheets.add(name);
+
+      if (result.layout === "data") {
+        // A plain table at A1 (header + rows) so it can be analysed again. Written in
+        // chunks to stay under Excel's request size limit.
+        const values = dataValues(result);
+        const width = values[0]?.length ?? 0;
+        const CHUNK = 2000;
+        for (let r = 0; r < values.length && width; r += CHUNK) {
+          const part = values.slice(r, r + CHUNK);
+          ws.getRangeByIndexes(r, 0, part.length, width).values = part;
+          await ctx.sync();
+        }
+        if (width) {
+          const header = ws.getRangeByIndexes(0, 0, 1, width);
+          header.format.font.bold = true;
+          header.format.fill.color = "#EEF1F5";
+          ws.freezePanes.freezeRows(1);
+          ws.getRangeByIndexes(0, 0, Math.min(values.length, 500), width).format.autofitColumns();
+        }
+        ws.activate();
+        await ctx.sync();
+        return name;
+      }
 
       let row = 0;
       for (const b of resultBlocks(result)) {
